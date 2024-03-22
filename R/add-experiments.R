@@ -3,8 +3,13 @@ fAlgo = function(job, data, instance, base_seed, l2sens, epsilon, delta, reps) {
   if ((delta == 0) || (epsilon == 0)) {
     noise = 0
   } else {
-    cs = 2 * log(1.25 / delta)
-    noise = sqrt(cs) * l2sens / epsilon
+    
+    # these two lines are the standard Gaussian mechanism and stay here for completeness
+    # cs = 2 * log(1.25 / delta)
+    # noise = sqrt(cs) * l2sens / epsilon
+    
+    # analytical Gaussian mechanism calibrates much better and also golds for eps > 1
+    noise = analyticGaussianMechanism(epsilon, delta, l2sens)
   }
 
   ll = list()
@@ -52,10 +57,20 @@ fAlgo = function(job, data, instance, base_seed, l2sens, epsilon, delta, reps) {
       # Calculate the error of the approximated CI:
       delta_ci = sum(abs(ci_app_auc - ci_emp_auc))# / sum(diff(ci_emp_auc))
 
+        
+      ###### RR
+      # Alternative discrepancy measure to check discrepancy between ROC GLM and empirical, only done between empirical and roc glm without noise
+      if (noise == 0) {
+          discr = ifelse(noise == 0, calcDiscrepancy(data = df_roc, a = auc_roc_params[1], b = auc_roc_params[2]), NA)          
+      } else {
+          discr = NA
+      }
+
+        
       # Gather results:
       df_aucs = data.frame(auc_emp = auc_emp, auc_roc = auc_roc, auc_roc_param1 = auc_roc_params[1],
         auc_roc_param2 = auc_roc_params[2], n = nsim, npos = npos, threshold = 0.5, noise = noise,
-        epsilon = epsilon, delta = delta, l2sens = l2sens, delta_ci = delta_ci)
+        epsilon = epsilon, delta = delta, l2sens = l2sens, delta_ci = delta_ci, discr = discr)
 
       df_cis = data.frame(
         method    = method,
@@ -64,7 +79,9 @@ fAlgo = function(job, data, instance, base_seed, l2sens, epsilon, delta, reps) {
         log_auc   = c(lauc_emp, lauc_roc),
         lower     = c(ci_emp_auc[1], ci_app_auc[1]),
         upper     = c(ci_emp_auc[2], ci_app_auc[2]),
-        auc       = c(auc_emp, auc_roc))
+        auc       = c(auc_emp, auc_roc),
+        discr     = discr
+      )
 
       list(aucs = df_aucs, cis = df_cis)
     }, silent = TRUE)
@@ -72,7 +89,7 @@ fAlgo = function(job, data, instance, base_seed, l2sens, epsilon, delta, reps) {
     if (class(e) == "try-error") {
       df_aucs = data.frame(auc_emp = auc_emp, auc_roc = NA, auc_roc_param1 = NA, auc_roc_param2 = NA,
         n = nsim, npos = npos, threshold = 0.5, noise = noise, epsilon = epsilon, delta = delta,
-        l2sens = l2sens, delta_ci = NA)
+        l2sens = l2sens, delta_ci = NA, discr = NA)
 
       df_cis = data.frame(
         method   = method,
@@ -81,7 +98,8 @@ fAlgo = function(job, data, instance, base_seed, l2sens, epsilon, delta, reps) {
         log_auc   = rep(NA, 2),
         lower     = rep(NA, 2),
         upper     = rep(NA, 2),
-        auc       = rep(NA, 2)
+        auc       = rep(NA, 2),
+        discr     = rep(NA, 2)
       )
 
       out = list(aucs = df_aucs, cis = df_cis)
@@ -98,7 +116,6 @@ addAlgorithm(name = "auc-values", fun = fAlgo)
 addExperiments(algo.design = list('auc-values' = rbind(
 
   # This is the base configuration without any noise. We use
-  # this to get an idea of the accuracy of the ROC-GLM.
   data.frame(
     base_seed = BASE_SEED,
     l2sens    = 0,

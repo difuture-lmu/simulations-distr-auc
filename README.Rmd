@@ -214,6 +214,32 @@ ggsave(plot = gg_den_both_facet,
 #evince(here::here("figures/auc-emp-density-facets.pdf"))
 ```
 
+
+
+
+
+#### Discrepance as Area between empirical AUC and ROC GLM
+
+```{r}
+gg_l1_dist = ggplot(data = aucs_emp,aes(x = as.numeric(discr), y = ..density..))+
+  geom_histogram(color = "white", size = 0.2, alpha = 0.9, fill = "grey60")+
+    geom_density(color = "grey40")
+gg_l1_dist
+
+ggsave(plot = gg_l1_dist,
+  filename = here::here("figures/l1_disc.pdf"),
+  width = textwidth * 1,
+  height = textwidth * 0.5,
+  units = "mm")
+```
+
+
+
+
+
+
+
+
 ### Approximation errors
 
 #### Figure 4, Section 5.3.1

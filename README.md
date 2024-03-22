@@ -1,22 +1,17 @@
-Calculation of the ROC-GLM and AUC confidence interval for distributed
-non-disclosive analysis in DataSHIELD
-================
+# Calculation of the ROC-GLM and AUC confidence interval for distributed non-disclosive analysis in DataSHIELD
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-  - [About the repository](#about-the-repository)
-  - [Reproduce the results from the
-    paper](#reproduce-the-results-from-the-paper)
-  - [Inspect results using the
-    Docker](#inspect-results-using-the-docker)
-  - [Analyse results](#analyse-results)
-      - [Setup](#setup)
-      - [Simulation Results](#simulation-results)
-      - [Figures](#figures)
-      - [Table of AUC values](#table-of-auc-values)
-      - [Visualization of Gaussian
-        mechanism](#visualization-of-gaussian-mechanism)
-  - [Session Info](#session-info)
+- [About the repository](#about-the-repository)
+- [Reproduce the results from the paper](#reproduce-the-results-from-the-paper)
+- [Inspect results using the Docker](#inspect-results-using-the-docker)
+- [Analyse results](#analyse-results) 
+  - [Setup](#setup)
+  - [Simulation Results](#simulation-results)
+  - [Figures](#figures)
+  - [Table of AUC values](#table-of-auc-values)
+  - [Visualization of Gaussian mechanism](#visualization-of-gaussian-mechanism)
+- [Session Info](#session-info)
 
 ## About the repository
 
@@ -26,21 +21,15 @@ used to create the figures and tables.
 
 ### Structure
 
-  - File to run the simulations: `simulation.R`
-  - `R` code:
-      - Helper function for calculating the Probit regression, AUC
-        values, and confidence intervals: `R/helper.R`
-      - Code to define and add the experiments using `batchtools`
-        (called by `simulation.R`): `R/add-experiments.R`
-      - Installation script to get all required package with the version
-        used for the benchmark: `R/install-pkgs-versions.R`
-      - Setup variables like repetitions or the grid of values for the
-        simulation for the benchmark: `R/setup.R`
-  - Batchtools registry and results: `batchtools` (see
-    [below](#simulation-results) how to load the results)
-  - Folder for the paper figures `*.pdf` and README figures `*.png`:
-    `figures`
-  - Folder containing `*.tex` files of tables: `tables`
+- File to run the simulations: `simulation.R`
+- `R` code: 
+  - Helper function for calculating the Probit regression, AUC values, and confidence intervals: `R/helper.R`
+  - Code to define and add the experiments using `batchtools` (called by `simulation.R`): `R/add-experiments.R`
+  - Installation script to get all required package with the version used for the benchmark: `R/install-pkgs-versions.R`
+  - Setup variables like repetitions or the grid of values for the simulation for the benchmark: `R/setup.R`
+- Batchtools registry and results: `batchtools` (see [below](#simulation-results) how to load the results)
+- Folder for the paper figures `*.pdf` and README figures `*.png`: `figures`
+- Folder containing `*.tex` files of tables: `tables`
 
 ## Reproduce the results from the paper
 
@@ -57,23 +46,14 @@ Running the
 provides an RStudio API in your browser with all packages pre-installed
 and data to inspect the results. Therefore do:
 
-1.  Get the docker:
+1. Get the docker:
 
-<!-- end list -->
+- **Build the docker manually:** Run `sudo docker build -t schalkdaniel/simulations-distr-auc .` (You can use whatever tag you like, but for consistency we use `schalkdaniel/simulations-distr-auc`)
+- **Pull the docker:** Run `sudo docker pull schalkdaniel/simulations-distr-auc`
 
-  - **Build the docker manually:** Run `sudo docker build -t
-    schalkdaniel/simulations-distr-auc .` (You can use whatever tag you
-    like, but for consistency we use
-    `schalkdaniel/simulations-distr-auc`)
-  - **Pull the docker:** Run `sudo docker pull
-    schalkdaniel/simulations-distr-auc`
-
-<!-- end list -->
-
-2.  Run the docker: `sudo docker run -d -p 8787:8787 -e PASSWORD=test
-    schalkdaniel/simulations-distr-auc`
-3.  Open your browser and visit <localhost:8787>
-4.  Login with `rstudio` as user and `test` as password
+1. Run the docker: `sudo docker run -d -p 8787:8787 -e PASSWORD=test schalkdaniel/simulations-distr-auc`
+2. Open your browser and visit `localhost:8787`
+3. Login with `rstudio` as user and `test` as password
 
 ## Analyse results
 
@@ -82,7 +62,7 @@ used to fully reproduce the figures and tables of the paper.
 
 ### Setup
 
-``` r
+```r
 # source(here::here("R/install-pkgs-versions.R"))
 
 library(dplyr)
@@ -143,13 +123,13 @@ evince = function(file) system(paste0("evince ", file, " &"))
 
 ### Simulation Results
 
-``` r
+```r
 ## Load data
 loadRegistry(here::here("batchtools/"))
 #> Experiment Registry
 #>   Backend   : Interactive
-#>   File dir  : /home/daniel/repos/simulations-distr-auc/batchtools
-#>   Work dir  : /home/daniel/repos/simulations-distr-auc
+#>   File dir  : /nfsmb/koll/rrehms/auc_paper/paper_commits/simulations-distr-auc/batchtools
+#>   Work dir  : /nfsmb/koll/rrehms/auc_paper/paper_commits/simulations-distr-auc
 #>   Jobs      : 126
 #>   Problems  : 1
 #>   Algorithms: 1
@@ -192,7 +172,7 @@ aucs_dp = aucs_dp0 %>%
 
 #### AUC densities, Figure 3, Section 5.3.1
 
-``` r
+```r
 ## Comparison for different n intervals:
 #nb      = c(100, 200, 400, 800, 1600, 2500)
 nb      = seq(100, 2500, length.out = 7)
@@ -230,8 +210,7 @@ gg_den_both_facet
 
 ![](figures/unnamed-chunk-4-1.png)<!-- -->
 
-``` r
-
+```r
 ggsave(plot = gg_den_both_facet,
   filename = here::here("figures/auc-emp-density-facets.pdf"),
   width = textwidth,
@@ -241,11 +220,30 @@ ggsave(plot = gg_den_both_facet,
 #evince(here::here("figures/auc-emp-density-facets.pdf"))
 ```
 
+#### Discrepance as Area between empirical AUC and ROC GLM
+
+```r
+gg_l1_dist = ggplot(data = aucs_emp,aes(x = as.numeric(discr), y = ..density..))+
+  geom_histogram(color = "white", size = 0.2, alpha = 0.9, fill = "grey60")+
+    geom_density(color = "grey40")
+gg_l1_dist
+```
+
+![](figures/unnamed-chunk-5-1.png)<!-- -->
+
+```r
+ggsave(plot = gg_l1_dist,
+  filename = here::here("figures/l1_disc.pdf"),
+  width = textwidth * 1,
+  height = textwidth * 0.5,
+  units = "mm")
+```
+
 ### Approximation errors
 
 #### Figure 4, Section 5.3.1
 
-``` r
+```r
 ## AUC VALUES
 ## =======================================================
 
@@ -324,10 +322,9 @@ gg_auc_dp = do.call(ggpubr::ggarrange, c(ggs_auc, list(nrow = 1,
 gg_auc_dp
 ```
 
-![](figures/unnamed-chunk-5-1.png)<!-- -->
+![](figures/unnamed-chunk-6-1.png)<!-- -->
 
-``` r
-
+```r
 ggsave(plot = gg_auc_dp,
   filename = here::here("figures/auc-diff-priv.pdf"),
   width = textwidth * 1,
@@ -339,7 +336,7 @@ ggsave(plot = gg_auc_dp,
 
 #### Figure 5, Section 5.3.2
 
-``` r
+```r
 ## CI BOUNDARIES
 ## =======================================================
 
@@ -416,10 +413,9 @@ gg_ci_dp = do.call(ggpubr::ggarrange, c(ggs_ci, list(nrow = 1,
 gg_ci_dp
 ```
 
-![](figures/unnamed-chunk-6-1.png)<!-- -->
+![](figures/unnamed-chunk-7-1.png)<!-- -->
 
-``` r
-
+```r
 ggsave(plot = gg_ci_dp,
   filename = here::here("figures/cis-diff-priv.pdf"),
   width = textwidth,
@@ -433,7 +429,7 @@ ggsave(plot = gg_ci_dp,
 
 #### Table 1, Section 5.3.1
 
-``` r
+```r
 # Discretize empirical AUC values into 20 bins between 0.5 and 1.
 tab = aucs_emp %>% mutate(
     auc_diff = auc_emp - auc_roc,
@@ -468,32 +464,32 @@ writeLines(tab_latex, here::here("tables/auc-approximations.tex"))
 tab0 %>% kable()
 ```
 
-| auc\_emp\_cut |     Min. |  1st Qu. |   Median |     Mean |  3rd Qu. |   Max. |    Sd. | Count |
-| :------------ | -------: | -------: | -------: | -------: | -------: | -----: | -----: | ----: |
-| (0.5,0.525\]  | \-0.0044 | \-0.0001 |   0.0005 |   0.0040 |   0.0014 | 0.0506 | 0.0100 |   431 |
-| (0.525,0.55\] | \-0.0052 |   0.0001 |   0.0006 |   0.0027 |   0.0011 | 0.0986 | 0.0123 |   505 |
-| (0.55,0.575\] | \-0.0031 |   0.0003 |   0.0009 |   0.0014 |   0.0015 | 0.1298 | 0.0080 |   465 |
-| (0.575,0.6\]  | \-0.0018 |   0.0006 |   0.0012 |   0.0015 |   0.0017 | 0.1567 | 0.0072 |   482 |
-| (0.6,0.625\]  | \-0.0044 |   0.0009 |   0.0015 |   0.0014 |   0.0020 | 0.0064 | 0.0010 |   485 |
-| (0.625,0.65\] | \-0.0039 |   0.0012 |   0.0017 |   0.0017 |   0.0022 | 0.0069 | 0.0010 |   501 |
-| (0.65,0.675\] | \-0.0031 |   0.0013 |   0.0018 |   0.0018 |   0.0023 | 0.0068 | 0.0011 |   503 |
-| (0.675,0.7\]  | \-0.0022 |   0.0012 |   0.0018 |   0.0018 |   0.0023 | 0.0064 | 0.0010 |   465 |
-| (0.7,0.725\]  | \-0.0082 |   0.0010 |   0.0016 |   0.0016 |   0.0023 | 0.0070 | 0.0012 |   523 |
-| (0.725,0.75\] | \-0.0031 |   0.0008 |   0.0015 |   0.0014 |   0.0021 | 0.0087 | 0.0012 |   485 |
-| (0.75,0.775\] | \-0.0058 |   0.0004 |   0.0011 |   0.0010 |   0.0018 | 0.0053 | 0.0013 |   501 |
-| (0.775,0.8\]  | \-0.0053 | \-0.0003 |   0.0004 |   0.0005 |   0.0012 | 0.0088 | 0.0015 |   523 |
-| (0.8,0.825\]  | \-0.0061 | \-0.0013 | \-0.0002 | \-0.0004 |   0.0005 | 0.0045 | 0.0016 |   476 |
-| (0.825,0.85\] | \-0.0125 | \-0.0023 | \-0.0013 | \-0.0014 | \-0.0003 | 0.0059 | 0.0019 |   484 |
-| (0.85,0.875\] | \-0.0111 | \-0.0037 | \-0.0026 | \-0.0025 | \-0.0014 | 0.0074 | 0.0020 |   520 |
-| (0.875,0.9\]  | \-0.0136 | \-0.0056 | \-0.0044 | \-0.0043 | \-0.0030 | 0.0076 | 0.0023 |   534 |
-| (0.9,0.925\]  | \-0.0195 | \-0.0080 | \-0.0065 | \-0.0065 | \-0.0052 | 0.0066 | 0.0026 |   515 |
-| (0.925,0.95\] | \-0.0193 | \-0.0105 | \-0.0091 | \-0.0089 | \-0.0076 | 0.0056 | 0.0030 |   481 |
-| (0.95,0.975\] | \-0.0227 | \-0.0138 | \-0.0113 | \-0.0113 | \-0.0093 | 0.0067 | 0.0037 |   503 |
-| (0.975,1\]    | \-0.0180 | \-0.0093 | \-0.0062 | \-0.0064 | \-0.0034 | 0.0013 | 0.0039 |   529 |
+| auc_emp_cut  |       Min. |    1st Qu. |     Median |       Mean |    3rd Qu. |      Max. |       Sd. | Count |
+|:-------------|-----------:|-----------:|-----------:|-----------:|-----------:|----------:|----------:|------:|
+| (0.5,0.525\]  | \-0.0044383 | \-0.0001307 |  0\.0004448 |  0\.0038600 |  0\.0013542 | 0\.0495491 | 0\.0098073 |   431 |
+| (0.525,0.55\] | \-0.0052108 |  0\.0000685 |  0\.0006418 |  0\.0027560 |  0\.0011252 | 0\.0985955 | 0\.0122949 |   505 |
+| (0.55,0.575\] | \-0.0031457 |  0\.0003188 |  0\.0008907 |  0\.0014210 |  0\.0014852 | 0\.1298428 | 0\.0080411 |   465 |
+| (0.575,0.6\]  | \-0.0018138 |  0\.0005808 |  0\.0011924 |  0\.0015039 |  0\.0017489 | 0\.1567206 | 0\.0071699 |   482 |
+| (0.6,0.625\]  | \-0.0043680 |  0\.0008882 |  0\.0015116 |  0\.0014311 |  0\.0020180 | 0\.0063648 | 0\.0010403 |   485 |
+| (0.625,0.65\] | \-0.0038982 |  0\.0011677 |  0\.0017045 |  0\.0017158 |  0\.0022246 | 0\.0069136 | 0\.0010315 |   501 |
+| (0.65,0.675\] | \-0.0031417 |  0\.0012548 |  0\.0017989 |  0\.0017817 |  0\.0023333 | 0\.0068008 | 0\.0010851 |   503 |
+| (0.675,0.7\]  | \-0.0022132 |  0\.0012076 |  0\.0017841 |  0\.0017879 |  0\.0023216 | 0\.0063895 | 0\.0010377 |   465 |
+| (0.7,0.725\]  | \-0.0081956 |  0\.0010002 |  0\.0016267 |  0\.0016282 |  0\.0022721 | 0\.0070282 | 0\.0011775 |   523 |
+| (0.725,0.75\] | \-0.0030765 |  0\.0008437 |  0\.0014636 |  0\.0014205 |  0\.0021148 | 0\.0086789 | 0\.0012128 |   485 |
+| (0.75,0.775\] | \-0.0058233 |  0\.0004062 |  0\.0010563 |  0\.0010395 |  0\.0018143 | 0\.0053310 | 0\.0012823 |   501 |
+| (0.775,0.8\]  | \-0.0052752 | \-0.0003056 |  0\.0003994 |  0\.0004837 |  0\.0012293 | 0\.0087512 | 0\.0014813 |   523 |
+| (0.8,0.825\]  | \-0.0060755 | \-0.0012676 | \-0.0002452 | \-0.0003585 |  0\.0004864 | 0\.0045295 | 0\.0015518 |   476 |
+| (0.825,0.85\] | \-0.0124976 | \-0.0022868 | \-0.0013400 | \-0.0014091 | \-0.0002653 | 0\.0059060 | 0\.0019481 |   484 |
+| (0.85,0.875\] | \-0.0110969 | \-0.0036791 | \-0.0026149 | \-0.0025210 | \-0.0013951 | 0\.0074169 | 0\.0020318 |   520 |
+| (0.875,0.9\]  | \-0.0136367 | \-0.0056322 | \-0.0044412 | \-0.0043459 | \-0.0030480 | 0\.0076091 | 0\.0022857 |   534 |
+| (0.9,0.925\]  | \-0.0195223 | \-0.0079785 | \-0.0064726 | \-0.0065343 | \-0.0052044 | 0\.0065504 | 0\.0026299 |   515 |
+| (0.925,0.95\] | \-0.0192918 | \-0.0105496 | \-0.0090891 | \-0.0089337 | \-0.0076055 | 0\.0056324 | 0\.0029665 |   481 |
+| (0.95,0.975\] | \-0.0226558 | \-0.0137940 | \-0.0112812 | \-0.0113273 | \-0.0092846 | 0\.0066963 | 0\.0037026 |   503 |
+| (0.975,1\]    | \-0.0180451 | \-0.0093118 | \-0.0061871 | \-0.0064037 | \-0.0034321 | 0\.0012870 | 0\.0039401 |   529 |
 
 ### Visualization of Gaussian mechanism
 
-``` r
+```r
 set.seed(31415)
 x = runif(10, 0, 1)
 
@@ -585,55 +581,65 @@ for (l2s0 in l2s) {
 
 #### Appendix A.2, Figure 9
 
-``` r
+```r
 ggs_gm[[1]]
-```
-
-![](figures/unnamed-chunk-9-1.png)<!-- -->
-
-#### Appendix A.2, Figure 10
-
-``` r
-ggs_gm[[2]]
 ```
 
 ![](figures/unnamed-chunk-10-1.png)<!-- -->
 
+#### Appendix A.2, Figure 10
+
+```r
+ggs_gm[[2]]
+```
+
+![](figures/unnamed-chunk-11-1.png)<!-- -->
+
 ## Session Info
 
-``` r
+```r
 sessionInfo()
-#> R version 4.1.2 (2021-11-01)
+#> R version 4.2.2 Patched (2022-11-10 r83330)
 #> Platform: x86_64-pc-linux-gnu (64-bit)
-#> Running under: Arch Linux
+#> Running under: Debian GNU/Linux 12 (bookworm)
 #> 
 #> Matrix products: default
-#> BLAS:   /usr/lib/libblas.so.3.10.0
-#> LAPACK: /usr/lib/liblapack.so.3.10.0
+#> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.21.so
 #> 
 #> locale:
-#>  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_GB.UTF-8        LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_GB.UTF-8   
-#>  [6] LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_GB.UTF-8       LC_NAME=C                  LC_ADDRESS=C               LC_TELEPHONE=C            
-#> [11] LC_MEASUREMENT=en_GB.UTF-8 LC_IDENTIFICATION=C       
+#>  [1] LC_CTYPE=de_DE.UTF-8       LC_NUMERIC=C              
+#>  [3] LC_TIME=de_DE.UTF-8        LC_COLLATE=de_DE.UTF-8    
+#>  [5] LC_MONETARY=de_DE.UTF-8    LC_MESSAGES=de_DE.UTF-8   
+#>  [7] LC_PAPER=de_DE.UTF-8       LC_NAME=C                 
+#>  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+#> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C       
 #> 
 #> attached base packages:
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#>  [1] pROC_1.18.0       checkmate_2.0.0   batchtools_0.9.15 knitr_1.36        ggridges_0.5.3    ggsci_2.9         gridExtra_2.3    
-#>  [8] ggplot2_3.3.5     tidyr_1.2.0       dplyr_1.0.8      
+#>  [1] pROC_1.18.0       checkmate_2.0.0   batchtools_0.9.15 knitr_1.36       
+#>  [5] ggridges_0.5.3    ggsci_2.9         gridExtra_2.3     ggplot2_3.3.5    
+#>  [9] tidyr_1.1.4       dplyr_1.0.7      
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] jsonlite_1.8.0    carData_3.0-4     here_0.1          assertthat_0.2.1  highr_0.8         prettycode_1.1.0  base64url_1.4    
-#>  [8] cellranger_1.1.0  yaml_2.2.1        progress_1.2.2    Rttf2pt1_1.3.8    pillar_1.7.0      backports_1.4.1   glue_1.6.2       
-#> [15] extrafontdb_1.0   digest_0.6.29     ggsignif_0.6.0    colorspace_2.0-2  cowplot_1.0.0     htmltools_0.4.0   plyr_1.8.6       
-#> [22] pkgconfig_2.0.3   broom_0.7.1       haven_2.4.3       sysfonts_0.8.1    purrr_0.3.4       scales_1.1.1      brew_1.0-6       
-#> [29] openxlsx_4.2.2    rio_0.5.16        tibble_3.1.6      generics_0.1.2    farver_2.1.0      car_3.0-10        ellipsis_0.3.2   
-#> [36] ggpubr_0.3.0      withr_2.4.3       cli_3.2.0         readxl_1.3.1      magrittr_2.0.2    crayon_1.5.0      evaluate_0.14    
-#> [43] fs_1.5.0          fansi_1.0.2       forcats_0.5.1     rstatix_0.5.0     foreign_0.8-81    textshaping_0.3.6 tools_4.1.2      
-#> [50] data.table_1.14.2 prettyunits_1.1.1 hms_1.1.1         lifecycle_1.0.1   stringr_1.4.0     munsell_0.5.0     zip_2.1.1        
-#> [57] compiler_4.1.2    systemfonts_1.0.3 rlang_1.0.1       grid_4.1.2        rappdirs_0.3.3    labeling_0.4.2    rmarkdown_2.11   
-#> [64] gtable_0.3.0      abind_1.4-5       DBI_1.1.0         curl_4.3.2        R6_2.5.1          extrafont_0.17    utf8_1.2.2       
-#> [71] rprojroot_2.0.2   latex2exp_0.5.0   ragg_1.2.0        stringi_1.7.6     Rcpp_1.0.8        vctrs_0.3.8       tidyselect_1.1.2 
-#> [78] xfun_0.27
+#>  [1] jsonlite_1.7.3    carData_3.0-5     here_0.1          assertthat_0.2.1 
+#>  [5] highr_0.10        base64url_1.4     yaml_2.3.7        progress_1.2.2   
+#>  [9] Rttf2pt1_1.3.12   pillar_1.9.0      backports_1.4.1   glue_1.6.2       
+#> [13] extrafontdb_1.0   digest_0.6.31     ggsignif_0.6.4    colorspace_2.1-0 
+#> [17] cowplot_1.1.1     htmltools_0.5.4   plyr_1.8.8        pkgconfig_2.0.3  
+#> [21] broom_1.0.3       sysfonts_0.8.1    purrr_1.0.1       scales_1.2.1     
+#> [25] brew_1.0-8        tibble_3.2.1      generics_0.1.3    farver_2.1.1     
+#> [29] car_3.1-1         ellipsis_0.3.2    ggpubr_0.3.0      withr_2.5.0      
+#> [33] cli_3.6.0         magrittr_2.0.3    crayon_1.5.2      evaluate_0.20    
+#> [37] fs_1.6.1          fansi_1.0.4       rstatix_0.7.2     textshaping_0.3.6
+#> [41] tools_4.2.2       data.table_1.14.8 prettyunits_1.1.1 hms_1.1.2        
+#> [45] lifecycle_1.0.3   stringr_1.5.0     munsell_0.5.0     compiler_4.2.2   
+#> [49] systemfonts_1.0.4 rlang_1.1.2       grid_4.2.2        rappdirs_0.3.3   
+#> [53] labeling_0.4.2    rmarkdown_2.11    gtable_0.3.1      abind_1.4-5      
+#> [57] DBI_1.1.3         curl_5.0.0        R6_2.5.1          fastmap_1.1.1    
+#> [61] extrafont_0.17    utf8_1.2.3        rprojroot_2.0.3   latex2exp_0.5.0  
+#> [65] ragg_1.2.5        stringi_1.7.12    Rcpp_1.0.10       vctrs_0.6.4      
+#> [69] tidyselect_1.2.0  xfun_0.41
 ```

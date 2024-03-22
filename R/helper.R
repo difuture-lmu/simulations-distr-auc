@@ -150,6 +150,43 @@ pepeCI = function(logit_auc, alpha, var_auc) {
     (logitToAUC(logit_auc) * (1 - logitToAUC(logit_auc)))
   return(logit_auc + c(-1, 1) * quant)
 }
+                    
+               
+
+#' Helper function to calculate the discrepancy between ROC GLM and empirical ROC curve
+discrepancy_function <- function(x, a, b, roc_curve_function){
+  abs(pnorm(a + b*qnorm(x)) - roc_curve_function(x))
+}
+                    
+
+
+#' Calculate discrepancy between ROC GLM and empirical ROC curve
+#'
+#' @param data (`data.frame()`) Data frame containing columns `score` and `truth`.
+#' @param a (`numeric()`) first param from ROC GLM
+#' @param b (`numeric()`) first param from ROC GLM
+#' @param ind (`integer()`) Indices for subsetting the data. -- no tused
+#' @return (`numeric(1)`) The value of AUC either with or without logit transformation.
+calcDiscrepancy  = function(data, a, b, ind = NULL) {
+  checkmate::assertNumeric(a, len = 1L)
+  checkmate::assertNumeric(b, len = 1L)
+  # no other checks here as everything is already tested by other functions that are called earlier
+  
+  if (is.null(ind[1])) ind = seq_len(nrow(data))
+  
+  # calc roc curve to get tpr and fpr
+  curve_tmp = pROC::roc(response=data$truth[ind], predictor=data$score[ind])
+  tpr_tmp <- rev(curve_tmp$sensitivities)
+  fpr_tmp <- rev(1-curve_tmp$specificities)
+  
+  # cast tpr and fpr into a function
+  roc_curve_function_tmp <- stepfun(fpr_tmp+.Machine$double.eps, c(0,tpr_tmp), f = 0, right=F)
+  
+  return(integrate(function(x) discrepancy_function(x, a = a, b = b, roc_curve_function = roc_curve_function_tmp), lower = 0, upper = 1, subdivisions = 500)$value)
+}
+       
+                    
+                    
 
 # ============================================================================ #
 #                              PROBIT REGRESSION
@@ -407,4 +444,91 @@ rocGLMlogitAUC = function(data, ind = NULL, unlogit = FALSE) {
   } else {
     return(NA)
   }
+}
+
+
+# ============================================================================ #
+#                                  Gaussian Noise
+# ============================================================================ #
+
+#' Calculates the error function used for the analytic Gaussian mechanism
+#'
+#' @param x (`numeric()`) A (vector of) real number(s)
+#' @return (`numeric()`) The evaluated error function
+#' @author Raphael Rehms
+erf = function(x){
+  return(2 * pnorm(x * sqrt(2)) - 1)
+}
+
+#' Calculates the analytic Gaussian mechanism for given privacy parameters (see https://arxiv.org/abs/1805.06530)
+#'
+#' @param epsilon (`numeric()`) Epsilon > 0
+#' @param delta (`numeric()`) Delta that is between (0,1)
+#' @param sens (`numeric()`) Sensitivity of the algorithm
+#' @param tol (`numeric()`) Tolerance for binary search
+#' @return (`numeric()`) Sigma that can be used to generate calibrated Gaussian noise
+#' @author Raphael Rehms
+analyticGaussianMechanism = function(epsilon, delta, sens, tol = 1e-12) {
+  phi = function(t) {
+    0.5 * (1.0 + erf(t / sqrt(2.0)))
+  }
+  
+  caseA = function(epsilon, s) {
+    phi(sqrt(epsilon * s)) - exp(epsilon) * phi(-sqrt(epsilon * (s + 2.0)))
+  }
+  
+  caseB = function(epsilon, s) {
+    phi(-sqrt(epsilon * s)) - exp(epsilon) * phi(-sqrt(epsilon * (s + 2.0)))
+  }
+  
+  doubling_trick = function(predicate_stop, s_inf, s_sup) {
+    while (!predicate_stop(s_sup)) {
+      s_inf = s_sup
+      s_sup = 2.0 * s_inf
+    }
+    return(c(s_inf, s_sup))
+  }
+  
+  binary_search = function(predicate_stop, predicate_left, s_inf, s_sup) {
+    s_mid = s_inf + (s_sup - s_inf) / 2.0
+    while (!predicate_stop(s_mid)) {
+      if (predicate_left(s_mid)) {
+        s_sup = s_mid
+      } else {
+        s_inf = s_mid
+      }
+      s_mid = s_inf + (s_sup - s_inf) / 2.0
+    }
+    return(s_mid)
+  }
+  
+  delta_thr = caseA(epsilon, 0.0)
+  
+  if (delta == delta_thr) {
+    alpha = 1.0
+  } else {
+    if (delta > delta_thr) {
+      predicate_stop_DT = function(s) caseA(epsilon, s) >= delta
+      function_s_to_delta = function(s) caseA(epsilon, s)
+      predicate_left_BS = function(s) function_s_to_delta(s) > delta
+      function_s_to_alpha = function(s) sqrt(1.0 + s / 2.0) - sqrt(s / 2.0)
+    } else {
+      predicate_stop_DT = function(s) caseB(epsilon, s) <= delta
+      function_s_to_delta = function(s) caseB(epsilon, s)
+      predicate_left_BS = function(s) function_s_to_delta(s) < delta
+      function_s_to_alpha = function(s) sqrt(1.0 + s / 2.0) + sqrt(s / 2.0)
+    }
+    
+    predicate_stop_BS = function(s) abs(function_s_to_delta(s) - delta) <= tol
+    
+    s_ = doubling_trick(predicate_stop_DT, 0.0, 1.0)
+    s_inf = s_[1]; s_sup = s_[2]
+    
+    s_final = binary_search(predicate_stop_BS, predicate_left_BS, s_inf, s_sup)
+    alpha = function_s_to_alpha(s_final)
+  }
+  
+  sigma = alpha * sens / sqrt(2.0 * epsilon)
+  
+  return(sigma)
 }
