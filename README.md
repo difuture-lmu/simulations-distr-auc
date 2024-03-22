@@ -39,6 +39,7 @@ reproduce the figures of the paper, render the README with
 figures are created and stored in `figures` while the table is stored in
 `tables`.
 
+<!---
 ## Inspect results using the Docker
 
 Running the
@@ -54,6 +55,7 @@ and data to inspect the results. Therefore do:
 1. Run the docker: `sudo docker run -d -p 8787:8787 -e PASSWORD=test schalkdaniel/simulations-distr-auc`
 2. Open your browser and visit `localhost:8787`
 3. Login with `rstudio` as user and `test` as password
+--->
 
 ## Analyse results
 
